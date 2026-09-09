@@ -13,31 +13,72 @@ precision highp float;
 
 uniform vec4 u_Color; // The color with which to render this instance of geometry.
 
+uniform float u_AbsorptionStrength;
+uniform float u_ForwardScatteringDensing;
+uniform int u_Step;
+
+uniform highp sampler3D u_Tex;
+
 // These are the interpolated values out of the rasterizer, so you can't know
 // their specific values without knowing the vertices that contributed to them
-in vec4 fs_Nor;
-in vec4 fs_LightVec;
+in vec4 fs_PosWS;
+in vec3 fs_viewDirWS;
+// in vec3 fs_LightDirWS;
 in vec4 fs_Col;
 
 out vec4 out_Col; // This is the final output color that you will see on your
                   // screen for the pixel that is currently being processed.
 
+const vec3 lightPosWS = vec3(5, 5, 3);
+
+// const int STEPS = 80;
+
+bool insideCube(vec3 p)
+{
+    return all(greaterThanEqual(p, vec3(0.0))) &&
+           all(lessThanEqual(p, vec3(1.0)));
+}
+
+float getDensity(vec3 uv)
+{
+    return smoothstep(0.6, 0.7, texture(u_Tex, uv).r);
+}
+
 void main()
 {
-    // Material base color (before shading)
-        vec4 diffuseColor = u_Color;
+    float stepSize = 1.732 / float(u_Step); // sqrt(3) / steps
+    
+    vec3 rayDir = normalize(-fs_viewDirWS);
+    vec3 posUVWS = (fs_PosWS.xyz + 1.0) / 2.0;
 
-        // Calculate the diffuse term for Lambert shading
-        float diffuseTerm = dot(normalize(fs_Nor), normalize(fs_LightVec));
-        // Avoid negative lighting values
-        // diffuseTerm = clamp(diffuseTerm, 0, 1);
+    vec3 p = posUVWS;
 
-        float ambientTerm = 0.2;
+    float transmittance = 1.0;
+    vec3 accumulatedLight = vec3(0.0);
 
-        float lightIntensity = diffuseTerm + ambientTerm;   //Add a small float value to the color multiplier
-                                                            //to simulate ambient lighting. This ensures that faces that are not
-                                                            //lit by our point light are not completely black.
+    for (int i = 0; i < u_Step; ++i)
+    {
+        if (!insideCube(p))
+            break;
 
-        // Compute final shaded color
-        out_Col = vec4(diffuseColor.rgb * lightIntensity, diffuseColor.a);
+        vec3 lightDir = normalize(lightPosWS - p * 2.0 - 1.0);
+        float forwardScattering = 0.4 + 0.6 * pow(max(dot(rayDir, lightDir), 0.0), u_ForwardScatteringDensing);
+
+        float lighting = exp(-(getDensity(p) * stepSize * u_AbsorptionStrength));
+
+        accumulatedLight +=
+            vec3(forwardScattering * (1.0 - lighting) * transmittance);
+
+        transmittance *= lighting;
+
+        if (transmittance < 0.01)
+            break;
+
+        p += rayDir * stepSize;
+    }
+
+    float alpha = 1.0 - transmittance;
+
+    out_Col = vec4(accumulatedLight * u_Color.rgb, alpha);
+    // out_Col = vec4(vec3(getDensity(posUVWS)), 1);
 }

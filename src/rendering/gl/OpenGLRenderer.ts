@@ -7,6 +7,12 @@ import ShaderProgram from './ShaderProgram';
 // In this file, `gl` is accessible because it is imported above
 class OpenGLRenderer {
   constructor(public canvas: HTMLCanvasElement) {
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+    gl.enable(gl.CULL_FACE);
+    gl.cullFace(gl.BACK);
+    gl.frontFace(gl.CW);
   }
 
   setClearColor(r: number, g: number, b: number, a: number) {
@@ -24,14 +30,12 @@ class OpenGLRenderer {
 
   render(camera: Camera, prog: ShaderProgram, drawables: Array<Drawable>) {
     let model = mat4.create();
-    let viewProj = mat4.create();
-    let color = vec4.fromValues(1, 0, 0, 1);
 
     mat4.identity(model);
-    mat4.multiply(viewProj, camera.projectionMatrix, camera.viewMatrix);
     prog.setModelMatrix(model);
-    prog.setViewProjMatrix(viewProj);
-    prog.setGeometryColor(color);
+    prog.setViewMatrix(camera.viewMatrix);
+    prog.setProjMatrix(camera.projectionMatrix);
+    prog.setCamPos(camera.controls.eye);
 
     for (let drawable of drawables) {
       prog.draw(drawable);

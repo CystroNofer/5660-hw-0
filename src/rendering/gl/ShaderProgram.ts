@@ -1,4 +1,4 @@
-import {vec4, mat4} from 'gl-matrix';
+import {vec3, vec4, mat4} from 'gl-matrix';
 import Drawable from './Drawable';
 import {gl} from '../../globals';
 
@@ -27,8 +27,18 @@ class ShaderProgram {
 
   unifModel: WebGLUniformLocation;
   unifModelInvTr: WebGLUniformLocation;
-  unifViewProj: WebGLUniformLocation;
+  unifView: WebGLUniformLocation;
+  unifProj: WebGLUniformLocation;
+  // unifViewProj: WebGLUniformLocation;
+  unifCamPos: WebGLUniformLocation;
+  unifTime: WebGLUniformLocation;
+  unifDistortion: WebGLUniformLocation;
+
   unifColor: WebGLUniformLocation;
+  unifAbsorptionStrength: WebGLUniformLocation;
+  unifForwardScatteringDensing: WebGLUniformLocation;
+  unifStep: WebGLUniformLocation;
+  unifTex: WebGLUniformLocation;
 
   constructor(shaders: Array<Shader>) {
     this.prog = gl.createProgram();
@@ -44,10 +54,21 @@ class ShaderProgram {
     this.attrPos = gl.getAttribLocation(this.prog, "vs_Pos");
     this.attrNor = gl.getAttribLocation(this.prog, "vs_Nor");
     this.attrCol = gl.getAttribLocation(this.prog, "vs_Col");
+
     this.unifModel      = gl.getUniformLocation(this.prog, "u_Model");
     this.unifModelInvTr = gl.getUniformLocation(this.prog, "u_ModelInvTr");
-    this.unifViewProj   = gl.getUniformLocation(this.prog, "u_ViewProj");
+    this.unifView = gl.getUniformLocation(this.prog, "u_View");
+    this.unifProj = gl.getUniformLocation(this.prog, "u_Proj");
+    // this.unifViewProj   = gl.getUniformLocation(this.prog, "u_ViewProj");
+    this.unifCamPos   = gl.getUniformLocation(this.prog, "u_CamPos");
+    this.unifTime      = gl.getUniformLocation(this.prog, "u_Time");
+    this.unifDistortion      = gl.getUniformLocation(this.prog, "u_Distortion");
+    
     this.unifColor      = gl.getUniformLocation(this.prog, "u_Color");
+    this.unifAbsorptionStrength      = gl.getUniformLocation(this.prog, "u_AbsorptionStrength");
+    this.unifForwardScatteringDensing      = gl.getUniformLocation(this.prog, "u_ForwardScatteringDensing");
+    this.unifStep      = gl.getUniformLocation(this.prog, "u_Step");
+    this.unifTex      = gl.getUniformLocation(this.prog, "u_Tex");
   }
 
   use() {
@@ -71,10 +92,45 @@ class ShaderProgram {
     }
   }
 
-  setViewProjMatrix(vp: mat4) {
+  // setViewProjMatrix(vp: mat4) {
+  //   this.use();
+  //   if (this.unifViewProj !== -1) {
+  //     gl.uniformMatrix4fv(this.unifViewProj, false, vp);
+  //   }
+  // }
+
+  setViewMatrix(vp: mat4) {
     this.use();
-    if (this.unifViewProj !== -1) {
-      gl.uniformMatrix4fv(this.unifViewProj, false, vp);
+    if (this.unifView !== -1) {
+      gl.uniformMatrix4fv(this.unifView, false, vp);
+    }
+  }
+
+  setProjMatrix(vp: mat4) {
+    this.use();
+    if (this.unifProj !== -1) {
+      gl.uniformMatrix4fv(this.unifProj, false, vp);
+    }
+  }
+
+  setCamPos(cp: vec3) {
+    this.use();
+    if (this.unifCamPos !== -1) {
+      gl.uniform3fv(this.unifCamPos, cp);
+    }
+  }
+
+  setTime(time: number) {
+    this.use();
+    if (this.unifTime !== -1) {
+      gl.uniform1f(this.unifTime, time);
+    }
+  }
+
+  setDistortion(distortion: number) {
+    this.use();
+    if (this.unifDistortion !== -1) {
+      gl.uniform1f(this.unifDistortion, distortion);
     }
   }
 
@@ -82,6 +138,28 @@ class ShaderProgram {
     this.use();
     if (this.unifColor !== -1) {
       gl.uniform4fv(this.unifColor, color);
+    }
+  }
+
+  setCloudProperties(abosorptionStrength: number, forwardScatteringDensity: number, step: number) {
+    this.use();
+    if (this.unifAbsorptionStrength !== -1) {
+      gl.uniform1f(this.unifAbsorptionStrength, abosorptionStrength);
+    }
+    if (this.unifForwardScatteringDensing !== -1) {
+      gl.uniform1f(this.unifForwardScatteringDensing, forwardScatteringDensity);
+    }
+    if (this.unifStep !== -1) {
+      gl.uniform1i(this.unifStep, step);
+    }
+  }
+
+  setTexture(tex: WebGLTexture) {
+    this.use();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_3D, tex);
+    if (this.unifTex !== -1) {
+      gl.uniform1i(this.unifTex, 0);
     }
   }
 
