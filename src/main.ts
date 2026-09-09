@@ -34,8 +34,8 @@ const controls = {
   objectColor: "#ffffff",
   texSize: 64,
   cellSize: 3,
-  distrortion: 0.1,
-  absorptionStrength: 4.0,
+  distortion: 0.1,
+  absorptionStrength: 7.0,
   forwardScatteringDensity: 5.0,
   step: 100,
   'Load Scene': loadScene, // A function pointer, essentially
@@ -197,7 +197,7 @@ function main() {
       lambert.setTexture(GenWorleyNoise())
     }
   );
-  gui.add(controls, 'distrortion', 0.0, 1.0).step(0.05).onChange(
+  gui.add(controls, 'distortion', 0.0, 1.0).step(0.05).onChange(
     (newDistortion) => {
       lambert.setDistortion(newDistortion);
     }
